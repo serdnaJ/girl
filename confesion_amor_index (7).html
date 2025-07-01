@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>💌 Carta de Amor Interactiva</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* ========================= VARIABLES GLOBALES ========================= */
+    :root {
+      --pink-light: #ffd1dc;
+      --pink-dark : #ff7a9e;
+      --violet    : #c18bff;
+      --white     : #ffffff;
+      --hero      : clamp(2rem, 7vw, 3.5rem);
+    }
+
+    /* ========================= RESET BÁSICO ========================= */
+    *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html,body           { height: 100%; }
+
+    /* ========================= CUERPO ========================= */
+    body {
+      font-family: 'Poppins', sans-serif; /* Fuente principal (sin cursiva) */
+      color: var(--white);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      overflow: hidden; /* evitamos scroll */
+
+      /* Fondo degradado animado */
+      background: linear-gradient(60deg, var(--pink-light), var(--violet), var(--pink-dark));
+      background-size: 400% 400%;
+      animation: bgShift 25s ease infinite;
+    }
+
+    @keyframes bgShift {
+      0%   { background-position:   0 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position:   0 50%; }
+    }
+
+    /* ========================= CORAZONES FLOTANTES ========================= */
+    .heart { /* contenedor cuadrado rotado 45° */
+      position: absolute;
+      bottom: -3rem;
+      width: 1.2rem; height: 1.2rem;
+      background: #ff4b7d;
+      transform: rotate(45deg);
+      border-radius: .3rem .3rem 0 0;
+      opacity: .7;
+      animation: float 9s linear infinite;
+    }
+    /* los dos lóbulos del corazón */
+    .heart::before, .heart::after {
+      content: "";
+      position: absolute;
+      width: 1.2rem; height: 1.2rem;
+      background: #ff4b7d;
+      border-radius: 50%;
+    }
+    .heart::before { top: -.6rem; left: 0; }
+    .heart::after  { top: 0;   left: .6rem; }
+
+    @keyframes float {
+      0%   { transform: translateY(0)  rotate(45deg); opacity: 1; }
+      100% { transform: translateY(-120vh) rotate(45deg); opacity: 0; }
+    }
+
+    /* ========================= TARJETA PRINCIPAL ========================= */
+    #card {
+      backdrop-filter: blur(15px);               /* efecto vidrio esmerilado */
+      background      : rgba(255,255,255,.18);
+      border          : 2px solid rgba(255,255,255,.35);
+      border-radius   : 1.8rem;
+      width           : min(92vw, 440px);
+      padding         : 2.8rem 2rem 3.4rem;
+      box-shadow      : 0 10px 40px rgba(0,0,0,.25);
+    }
+    /* título caligráfico (solo aquí mantenemos cursiva) */
+    h1 {
+      font-family : 'Great Vibes', cursive;
+      font-size   : var(--hero);
+      line-height : 1.3;
+      margin-bottom: .8rem;
+    }
+    /* subtítulo neutro */
+    #subtitle {
+      font-size    : clamp(1rem, 4vw, 1.2rem);
+      margin-bottom: 2.4rem;
+      opacity      : .9;
+    }
+
+    /* ========================= BOTONES ========================= */
+    .btn {
+      padding        : .9rem 2.5rem;
+      border         : none;
+      border-radius  : 60px;
+      font-size      : 1.05rem;
+      font-weight    : 600;
+      cursor         : pointer;
+      transition     : transform .25s, box-shadow .3s;
+      user-select    : none;
+    }
+    #yesBtn {
+      background: var(--white);
+      color     : var(--pink-dark);
+      box-shadow: 0 6px 18px rgba(0,0,0,.3);
+    }
+    #noBtn {
+      background: transparent;
+      color     : var(--white);
+      border    : 2px solid var(--white);
+      position  : relative; /* necesario para reubicarlo */
+    }
+    .btn:active { transform: scale(.95); }
+
+    /* botón para la carta */
+    #letterBtn {
+      margin-top : 1.4rem;
+      background : transparent;
+      border     : 2px dashed var(--white);
+      color      : var(--white);
+      font-size  : .95rem;
+      padding    : .6rem 1.6rem;
+      border-radius: 50px;
+      cursor     : pointer;
+      opacity    : .75;
+    }
+    #letterBtn:hover { opacity: 1; }
+
+    /* ========================= OVERLAYS (Éxito & Carta) ========================= */
+    #overlay, #letterModal {
+      position: fixed;
+      inset   : 0;
+      display : flex;
+      flex-direction : column;
+      justify-content: center;
+      align-items    : center;
+      background     : rgba(0,0,0,.55);
+      backdrop-filter: blur(6px);
+      opacity        : 0;
+      pointer-events : none;
+      transition     : opacity .6s;
+    }
+    /* se muestran con la clase .show */
+    #overlay.show, #letterModal.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    /* texto del overlay de éxito */
+    #overlay h2 {
+      font-family : 'Great Vibes', cursive;
+      font-size   : 2.7rem;
+      margin-bottom: .8rem;
+    }
+    #overlay p   { font-size: 1.15rem; max-width: 26ch; }
+    #catImg      { /* gatito debajo del texto */
+      width: 180px; margin-top: 1rem; border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.25);
+    }
+
+    /* Modal de la carta */
+    #letterBox {
+      width      : min(90vw, 500px);
+      max-height : 80vh;
+      overflow-y : auto;
+      background : #fff8f0;
+      color      : #5b3b25;
+      border-radius: 1rem;
+      padding    : 2.2rem 1.6rem;
+      box-shadow : 0 6px 30px rgba(0,0,0,.3);
+      font-size  : 1rem;
+      line-height: 1.6;
+      font-family: 'Poppins', sans-serif; /* inspiración neutra */
+    }
+    #closeLetter {
+      margin-top : 1.6rem;
+      padding    : .5rem 1.4rem;
+      background : var(--pink-dark);
+      color      : var(--white);
+      border     : none;
+      border-radius: 40px;
+      font-family: 'Poppins', sans-serif;
+      cursor     : pointer;
+    }
+
+    /* ========================= CONFETI DE CORAZONES ========================= */
+    .popHeart {
+      position: fixed;
+      font-size: 1.7rem;
+      pointer-events: none;
+      animation: confetti 1.6s forwards;
+    }
+    @keyframes confetti {
+      0%   { transform: translate(-50%,-50%) scale(.4) rotate(0); opacity: 1; }
+      100% { transform: translate(-50%,-120vh) scale(1.4) rotate(720deg); opacity: 0; }
+    }
+
+    /* ========================= CONTROL DE AUDIO ========================= */
+    #audioCtrl {
+      position: fixed; bottom: 1rem; right: 1rem;
+      width: 3.2rem; height: 3.2rem;
+      display: flex; justify-content: center; align-items: center;
+      font-size: 1.4rem;
+      background: rgba(0,0,0,.4);
+      backdrop-filter: blur(5px);
+      color: var(--white);
+      border: none; border-radius: 50%;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================ CORAZONES FLOTANTES ================ -->
+  <script>
+    // Generamos 30 corazones y los inyectamos al <body>
+    for (let i = 0; i < 30; i++) {
+      const h = document.createElement('span');
+      h.className = 'heart';
+      h.style.left = Math.random() * 100 + 'vw';          // posición horizontal aleatoria
+      h.style.animationDelay = Math.random() * 9 + 's';   // inicio de animación aleatorio
+      document.body.appendChild(h);
+    }
+  </script>
+
+  <!-- ================ TARJETA PRINCIPAL ================ -->
+  <main id="card" role="dialog" aria-labelledby="title" aria-describedby="subtitle">
+    <h1 id="title">¿Quieres ser mi polola?</h1>
+    <p id="subtitle">Vivamos una vida siempre juntos 💖</p>
+
+    <div style="display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;">
+      <button id="yesBtn" class="btn">¡Sí, acepto!</button>
+      <button id="noBtn"  class="btn">Mmm… no</button>
+    </div>
+
+    <button id="letterBtn">Leer mi carta para ti ✨</button>
+  </main>
+
+  <!-- ================ OVERLAY DE ÉXITO ================ -->
+  <section id="overlay" aria-hidden="true">
+    <h2>¡Iniciamos nuestro capítulo más hermoso, mi Nia! 💍</h2>
+    <p>Gracias por decir que sí… Prometo anime, risas y amor infinito.</p>
+    <!-- Imagen del gatito con ojos de corazón -->
+    <img id="catImg" src="cat.png" alt="Gatito adorable" />
+  </section>
+
+  <!-- ================ MODAL DE LA CARTA ================ -->
+  <section id="letterModal" aria-hidden="true">
+    <div id="letterBox">
+      <p id="letterContent">
+        Mi Nia:
+        <br><br>
+        Desde el primer día que nos vimos y jugamos Roblox, sentí que todo fluyó sin forzarlo; encontré a mi futura
+        esposa.
+        <br><br>
+        Entre partidas, anécdotas de Tin y Ton y maratones de Shingeki me enamoré muy rápido. Hoy quiero dar el siguiente
+        paso: caminar a tu lado, celebrar tus triunfos, sostenerte en tus caídas y escribir juntos una historia tan bella
+        que hasta las estrellas quieran escucharla.
+        <br><br>
+        ¿Aceptas embarcarte conmigo en esta aventura llamada amor?
+        <br><br>
+        Con todo mi corazón,
+        <br>
+        <strong>Andresito</strong>
+      </p>
+      <button id="closeLetter">Cerrar ✕</button>
+    </div>
+  </section>
+
+  <!-- ================ AUDIO DE FONDO ================ -->
+  <audio id="bgMusic" src="https://cdn.pixabay.com/download/audio/2023/03/22/audio_8540e1055b.mp3?filename=dreamy-romantic-piano-144212.mp3" loop></audio>
+  <button id="audioCtrl" title="Reproducir/Pausar música">▶️</button>
+
+  <!-- ================ SCRIPT PRINCIPAL ================ -->
+  <script>
+    /* -------------------- Referencias a elementos DOM -------------------- */
+    const yes         = document.getElementById('yesBtn');
+    const no          = document.getElementById('noBtn');
+    const overlay     = document.getElementById('overlay');
+    const music       = document.getElementById('bgMusic');
+    const audioCtrl   = document.getElementById('audioCtrl');
+    const letterBtn   = document.getElementById('letterBtn');
+    const letterModal = document.getElementById('letterModal');
+    const closeLetter = document.getElementById('closeLetter');
+
+    /* -------------------- Control del audio -------------------- */
+    function toggleMusic() {
+      if (music.paused) {
+        music.play().catch(() => {}); // algunos navegadores requieren interacción previa
+        audioCtrl.textContent = '⏸';  // cambiamos icono a pausa
+      } else {
+        music.pause();
+        audioCtrl.textContent = '▶️';  // volvemos al icono de play
+      }
+    }
+    audioCtrl.addEventListener('click', toggleMusic);
+
+    /* -------------------- Botón "Sí" -------------------- */
+    yes.addEventListener('click', () => {
+      // mostramos overlay de éxito
+      overlay.classList.add('show');
+      overlay.setAttribute('aria-hidden', 'false');
+
+      // reproducimos música (si aún no suena)
+      music.play().catch(() => {});
+      audioCtrl.textContent = '⏸';
+
+      // generamos confeti de corazones
+      for (let i = 0; i < 40; i++) {
+        const ph = document.createElement('div');
+        ph.className = 'popHeart';
+        ph.textContent = '💖';
+        ph.style.left = Math.random() * 100 + 'vw';
+        ph.style.top  = Math.random() * 100 + 'vh';
+        document.body.appendChild(ph);
+        ph.addEventListener('animationend', () => ph.remove());
+      }
+    });
+
+    /* -------------------- Botón "No" escurridizo -------------------- */
+    function evade() {
+      const pad  = 60; // margen para no salir de la pantalla
+      const maxX = window.innerWidth  - no.offsetWidth  - pad;
+      const maxY = window.innerHeight - no.offsetHeight - pad;
+      const x    = Math.random() * maxX + pad / 2;
+      const y    = Math.random() * maxY + pad / 2;
+
+      no.style.position = 'fixed';
+      no.style.left     = `${x}px`;
+      no.style.top      = `${y}px`;
+    }
+    // se mueve cuando intentan acercarse o tocarlo
+    ['mouseover', 'touchstart', 'click'].forEach(evt => no.addEventListener(evt, evade));
+
+    // doble‑tap para confirmar rechazo en móviles
+    let lastTap = 0;
+    no.addEventListener('touchend', () => {
+      const now = Date.now();
+      if (now - lastTap < 300) {
+        alert('¿Segura que quieres rechazarme? 😢 Pulsa de nuevo para confirmar');
+      }
+      lastTap = now;
+    });
+
+    /* -------------------- Modal de la carta -------------------- */
+    letterBtn.addEventListener('click', () => {
+      letterModal.classList.add('show');
+      letterModal.setAttribute('aria-hidden', 'false');
+    });
+
+    closeLetter.addEventListener('click', () => {
+      letterModal.classList.remove('show');
+      letterModal.setAttribute('aria-hidden', 'true');
+    });
+  </script>
+</body>
+</html>
